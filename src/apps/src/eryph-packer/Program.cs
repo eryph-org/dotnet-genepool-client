@@ -22,11 +22,27 @@ using Spectre.Console.Rendering;
 using Command = System.CommandLine.Command;
 using Validations = Eryph.GenePool.Model.Validations;
 
-//AnsiConsole.Profile.Capabilities.Interactive = false;
-var genePoolUri = new Uri(Environment.GetEnvironmentVariable("ERYPH_PACKER_GENEPOOL_API") 
-                          ?? "https://genepool-api.eryph.io");
+// environment handling for testing and development - packer can either use same variables as eryph or its own
+// in both cases setting staging authority will use staging genepool api, overwriting the api uri
+// is only required for local development
+var genePoolUriString = "https://genepool-api.eryph.io";
 
-var stagingAuthority = Environment.GetEnvironmentVariable("ERYPH_PACKER_AUTHORITY") == "staging";
+var stagingAuthority = Environment.GetEnvironmentVariable("ERYPH_PACKER_AUTHORITY") == "staging" ||
+                       Environment.GetEnvironmentVariable("ERYPH_GENEPOOL_AUTHORITY") == "staging";
+
+if (stagingAuthority)
+{
+    genePoolUriString = "https://eryphgenepoolapistaging.azurewebsites.net/";
+
+    var overwriteGenepoolApi = Environment.GetEnvironmentVariable("ERYPH_PACKER_GENEPOOL_API") 
+                               ?? Environment.GetEnvironmentVariable("ERYPH_GENEPOOL_API");
+    if (!string.IsNullOrWhiteSpace(overwriteGenepoolApi))
+        genePoolUriString = overwriteGenepoolApi;
+
+}
+
+var genePoolUri = new Uri(genePoolUriString);
+
 
 var clientOptions = new GenePoolClientOptions(GenePoolClientOptions.ServiceVersion.V1,
     genePoolUri.ToString(), 
